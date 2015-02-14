@@ -132,15 +132,18 @@ def get_estimators(obj):
 classes = list(set(get_estimators(sklearn)))
 
 for cls in classes:
-    name = 'Particle%s' % cls.__name__
+    if cls.__name__[0] == '_':
+        name = '_Particle%s' % cls.__name__[1:]
+    else:
+        name = 'Particle%s' % cls.__name__
 
     cls_dict = {}
     cls_dict['__doc__'] = cls.__doc__
     cls_dict['fit'] = fit
-    if TransformerMixin in cls.__bases__:
+    if issubclass(cls, TransformerMixin):
         cls_dict['transform'] = transform
 
-    if RegressorMixin in cls.__bases__:
+    if issubclass(cls, RegressorMixin):
         cls_dict['predict'] = predict
         cls_dict['score'] = score
 
