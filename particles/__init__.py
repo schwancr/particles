@@ -1,6 +1,7 @@
 
 from features import FeatureTrajectory
-from sklearn.base import TransformerMixin, RegressorMixin, BaseEstimator
+from sklearn.base import (TransformerMixin, RegressorMixin,
+                          BaseEstimator, ClassifierMixin)
 from sklearn import *
 import sklearn
 import numpy as np
@@ -25,7 +26,8 @@ def _flatten(X, y=None):
     # (n_seq * n_frames * n_waters, n_features)
 
     if not y is None:
-        yflat = np.concatenate(y)
+        # y is (n_seq, n_frames, n_waters)
+        yflat = np.concatenate(np.concatenate(y))
         return Xflat, yflat
 
     return Xflat, None
@@ -91,8 +93,13 @@ def transform(self, X):
     return transX
 
 
-def predict(self, X, y=None):
+def predict(self, X):
     
+    if isinstance(X, np.ndarray):
+        if X.ndim == 2:
+        # this is the superclass calling
+            return super(self.__class__, self).predict(X)
+
     n_seq = len(X)
     n_frames = [len(f) for f in X]
     if isinstance(X[0], FeatureTrajectory):
@@ -100,9 +107,9 @@ def predict(self, X, y=None):
     else:  # assume it's a np.ndarray
         n_particles = X[0].shape[1] 
 
-    Xflat, yflat = _flatten(X, y=y)
+    Xflat, yflat = _flatten(X, y=None)
 
-    ypredflat = super(self.__class__, self).predict(Xflat, y=yflat)
+    ypredflat = super(self.__class__, self).predict(Xflat)
 
     X, ypred = _expand(Xflat, n_seq, n_frames, n_particles, yflat=ypredflat)
 
@@ -139,11 +146,12 @@ for cls in classes:
 
     cls_dict = {}
     cls_dict['__doc__'] = cls.__doc__
+    cls_dict['__module__'] = 'particles'
     cls_dict['fit'] = fit
     if issubclass(cls, TransformerMixin):
         cls_dict['transform'] = transform
 
-    if issubclass(cls, RegressorMixin):
+    if issubclass(cls, RegressorMixin) or issubclass(cls, ClassifierMixin):
         cls_dict['predict'] = predict
         cls_dict['score'] = score
 
